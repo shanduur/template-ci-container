@@ -23,19 +23,17 @@ echo 'They should be in the format: ARG=VALUE'
 echo ''
 echo 'example: ./build.sh ARG1=VALUE1 ARG2=VALUE2'
 echo ''
-echo "starting build"
+echo '> starting build'
 
 # Validate if required variables are set
 if [[ -z "${EXECUTOR}" ]]; then
-	echo "EXECUTOR not set"
-	if which podman ; then
-		echo "using podman as EXECUTOR"
-		EXECUTOR=$(which podman)
-	elif which docker ; then
-		echo "using docker as EXECUTOR"
-		EXECUTOR=$(which docker)
+	echo "> EXECUTOR not set"
+	if EXECUTOR=$(which docker) ; then
+		echo ">> using docker as EXECUTOR"
+	elif EXECUTOR=$(which podman) ; then
+		echo ">> using podman as EXECUTOR"
 	else
-		echo "no executor found on the system"
+		echo ">> no executor found on the system"
 		exit 1
 	fi
 fi
@@ -57,12 +55,12 @@ fi
 
 # validate if required variables are set
 if [[ -z "${REGISTRY}" ]]; then
-	echo "REGISTRY not set"
-	echo "using docker.io"
+	echo "> REGISTRY not set"
+	echo ">> using docker.io"
 	REGISTRY='docker.io'
 fi
 if [[ -z "${REPOSITORY}" ]]; then
-	echo "REPOSITORY not set"
+	echo "> REPOSITORY not set"
 	exit 1
 fi
 if [[ -z "${IMAGE_NAME}" ]]; then
@@ -73,8 +71,8 @@ fi
 IMAGE="${REGISTRY}"/"${REPOSITORY}"/"${IMAGE_NAME}"
 
 if [[ -z "${IMAGE_TAG}" ]]; then
-	echo "IMAGE_TAG not set"
-	echo "tagging '${GIT_SHA}'"
+	echo "> IMAGE_TAG not set"
+	echo ">> tagging '${GIT_SHA}'"
 	IMAGE_TAG="${GIT_SHA}"
 else
 	# validate if the tag is correct SEMVER without additional info
@@ -100,7 +98,7 @@ done
 
 # Create a multi-architecture manifest
 if ! "${EXECUTOR}" manifest create --amend "${MANIFEST_NAME}" "${MANIFESTS[@]}"; then
-    echo "creation of manifest failed"
+    echo "> creation of manifest failed"
     exit 1
 fi
 

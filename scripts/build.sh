@@ -23,19 +23,17 @@ echo 'They should be in the format: ARG=VALUE'
 echo ''
 echo 'example: ./build.sh ARG1=VALUE1 ARG2=VALUE2'
 echo ''
-echo "starting build"
+echo '> starting build'
 
 # Validate if required variables are set
 if [[ -z "${EXECUTOR}" ]]; then
-	echo "EXECUTOR not set"
-	if which podman ; then
-		echo "using podman as EXECUTOR"
-		EXECUTOR=$(which podman)
-	elif which docker ; then
-		echo "using docker as EXECUTOR"
-		EXECUTOR=$(which docker)
+	echo "> EXECUTOR not set"
+	if EXECUTOR=$(which docker) ; then
+		echo ">> using docker as EXECUTOR"
+	elif EXECUTOR=$(which podman) ; then
+		echo ">> using podman as EXECUTOR"
 	else
-		echo "no executor found on the system"
+		echo ">> no executor found on the system"
 		exit 1
 	fi
 fi
@@ -57,48 +55,37 @@ fi
 
 # validate if required variables are set
 if [[ -z "${REGISTRY}" ]]; then
-	echo "REGISTRY not set"
-	echo "using docker.io"
+	echo "> REGISTRY not set"
+	echo ">> using docker.io"
 	REGISTRY='docker.io'
 fi
 if [[ -z "${REPOSITORY}" ]]; then
-	echo "REPOSITORY not set"
+	echo "> REPOSITORY not set"
 	exit 1
 fi
 if [[ -z "${IMAGE_NAME}" ]]; then
-	echo "IMAGE_NAME not set"
+	echo "> IMAGE_NAME not set"
 	exit 1
 fi
 # combine variables to easier refer to the image
 IMAGE="${REGISTRY}"/"${REPOSITORY}"/"${IMAGE_NAME}"
 
-if [[ -z "${IMAGE_TAG}" ]]; then
-	echo "IMAGE_TAG not set"
-	echo "tagging '${GIT_SHA}'"
-	IMAGE_TAG="${GIT_SHA}"
-else
-	# validate if the tag is correct SEMVER without additional info
-	if [[ "${IMAGE_TAG}" =~ ^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$ ]]; then
-		LATEST=1
-	fi
-fi
-
 if [[ -z "${CONTEXT}" ]]; then
-	echo "CONTEXT not set"
-	echo "using '.'"
+	echo "> CONTEXT not set"
+	echo ">> using '.'"
 	CONTEXT='.'
 fi
 
 if [[ -z "${CONTAINERFILE}" ]]; then
-	echo "CONTAINERFILE not set"
+	echo "> CONTAINERFILE not set"
 	if [[ -f "${CONTEXT}"/Dockerfile ]]; then
-		echo "using '${CONTEXT}/Dockerfile'"
+		echo ">> using '${CONTEXT}/Dockerfile'"
 		CONTAINERFILE="${CONTEXT}"/Dockerfile
 	elif [[ -f "${CONTEXT}"/Containerfile ]]; then
-		echo "using '${CONTEXT}/Containerfile'"
+		echo ">> using '${CONTEXT}/Containerfile'"
 		CONTAINERFILE='Containerfile'
 	else
-		echo "no Containerfile found in '${CONTEXT}'"
+		echo ">> no Containerfile found in '${CONTEXT}'"
 		exit 1
 	fi
 fi
