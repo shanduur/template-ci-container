@@ -6,8 +6,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  REPOSITORY: example
-  IMAGE_NAME: test
+  REPOSITORY: shanduur
+  IMAGE_NAME: template-ci-container
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
@@ -21,6 +21,9 @@ jobs:
           dockerfile: Containerfile
 
   image_security_scan:
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
     name: Build and scan container image
     runs-on: ubuntu-latest
     steps:
@@ -33,28 +36,16 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-${{ matrix.arch }}
           format: table
           exit-code: 1
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-arm64
-          format: table
-          exit-code: 1
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
-      - name: Run Dockle vulnerability scanner
-        uses: erzz/dockle-action@v1
-        with:
-          image: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64
-          exit-code: 1
-      - name: Run Dockle vulnerability scanner
-        uses: erzz/dockle-action@v1
-        with:
-          image: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-arm64
-          exit-code: 1
+      - name: push image to registry
+        run: ./scripts/push.sh
+        on:
+          push:
+            branches: [ main ]
+          tags:
+            - v*
