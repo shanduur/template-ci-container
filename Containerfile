@@ -1,3 +1,3 @@
-FROM gcr.io/distroless/static:latest
+FROM docker.io/ubuntu:22.04
 
 RUN echo "Hello World"
