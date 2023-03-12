@@ -1,0 +1,74 @@
+name: Build, scan and release container image (alternative)
+
+on:
+  release:
+    types: [released,prereleased]
+
+env:
+  REGISTRY: ghcr.io
+  REPOSITORY: shanduur
+  IMAGE_NAME: template-ci-container
+  IMAGE_TAG: ${{ github.ref_name }}
+  GIT_SHA: ${{ github.sha }}
+  ROBOT_USERNAME: ${{ secrets.ROBOT_USERNAME }}
+  ROBOT_PASSWORD: ${{ secrets.ROBOT_PASSWORD }}
+
+jobs:
+  build_scan_push:
+    name: Build, scan and push container image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build AMD64 image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Conatinerfile
+          platforms: linux/amd64
+          tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64
+          outputs: type=docker,dest=/tmp/${{ env.IMAGE_TAG }}-amd64.tar
+
+      - name: Run Trivy vulnerability scanner for AMD64
+        uses: aquasecurity/trivy-action@master
+        with:
+          trivy-config: .trivy.yaml
+          input: /tmp/${{ env.IMAGE_TAG }}-amd64.tar
+
+      - name: Build ARM64 image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Conatinerfile
+          platforms: linux/arm64
+          tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-arm64
+          outputs: type=docker,dest=/tmp/${{ env.IMAGE_TAG }}-arm64.tar
+
+      - name: Run Trivy vulnerability scanner for ARM64
+        uses: aquasecurity/trivy-action@master
+        with:
+          trivy-config: .trivy.yaml
+          input: /tmp/${{ env.IMAGE_TAG }}-arm64.tar
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.ROBOT_USERNAME }}
+          password: ${{ env.ROBOT_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Conatinerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-alt
