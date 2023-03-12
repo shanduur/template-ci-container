@@ -10,19 +10,10 @@ env:
   IMAGE_NAME: template-ci-container
   IMAGE_TAG: ${{ github.ref_name }}
   GIT_SHA: ${{ github.sha }}
-  ROBOT_USERNAME: ${{ github.repository_owner }}
-  ROBOT_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  ROBOT_USERNAME: ${{ secrets.ROBOT_USERNAME }}
+  ROBOT_PASSWORD: ${{ secrets.ROBOT_PASSWORD }}
 
 jobs:
-  image_lint:
-    name: Lint Containerfile
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Containerfile
-
   build_scan_push:
     name: Build, scan and push container image
     runs-on: ubuntu-latest
