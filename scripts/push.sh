@@ -27,100 +27,91 @@ echo '> starting build'
 
 # Validate if required variables are set
 if [[ -z "${EXECUTOR}" ]]; then
-	echo "> EXECUTOR not set"
-	if EXECUTOR=$(which docker) ; then
-		echo ">> using docker as EXECUTOR"
-	elif EXECUTOR=$(which podman) ; then
-		echo ">> using podman as EXECUTOR"
-	else
-		echo ">> no executor found on the system"
-		exit 1
-	fi
+    echo "> EXECUTOR not set"
+    if EXECUTOR=$(which docker) ; then
+        echo ">> using docker as EXECUTOR"
+    elif EXECUTOR=$(which podman) ; then
+        echo ">> using podman as EXECUTOR"
+    else
+        echo ">> no executor found on the system"
+        exit 1
+    fi
 fi
 
 # set debug mode if DEBUG is set
+EXTRA_FLAGS=()
 if [[ -n "${DEBUG}" ]]; then
-	set -x
-	if [[ "${EXECUTOR}" == "podman" ]]; then
-		EXTRA_FLAGS=(--log-level=debug)
-	elif [[ "${EXECUTOR}" == "docker" ]]; then
-		EXTRA_FLAGS=(--debug)
-	fi
+    set -x
+    if [[ "${EXECUTOR}" == "podman" ]]; then
+        EXTRA_FLAGS=(--log-level=debug)
+    elif [[ "${EXECUTOR}" == "docker" ]]; then
+        EXTRA_FLAGS=(--debug)
+    fi
 fi
 
 # set git sha if not set
 if [[ -z "${GIT_SHA}" ]]; then
-	GIT_SHA=$(git rev-parse HEAD)
+    GIT_SHA=$(git rev-parse HEAD)
 fi
 
 # validate if required variables are set
 if [[ -z "${REGISTRY}" ]]; then
-	echo "> REGISTRY not set"
-	echo ">> using docker.io"
-	REGISTRY='docker.io'
+    echo "> REGISTRY not set"
+    echo ">> using docker.io"
+    REGISTRY='docker.io'
 fi
 if [[ -z "${REPOSITORY}" ]]; then
-	echo "> REPOSITORY not set"
-	exit 1
+    echo "> REPOSITORY not set"
+    exit 1
 fi
 if [[ -z "${IMAGE_NAME}" ]]; then
-	echo "IMAGE_NAME not set"
-	exit 1
+    echo "IMAGE_NAME not set"
+    exit 1
 fi
 # combine variables to easier refer to the image
 IMAGE="${REGISTRY}"/"${REPOSITORY}"/"${IMAGE_NAME}"
 
 if [[ -z "${IMAGE_TAG}" ]]; then
-	echo "> IMAGE_TAG not set"
-	echo ">> tagging '${GIT_SHA}'"
-	IMAGE_TAG="${GIT_SHA}"
+    echo "> IMAGE_TAG not set"
+    echo ">> tagging '${GIT_SHA}'"
+    IMAGE_TAG="${GIT_SHA}"
 else
-	# validate if the tag is correct SEMVER without additional info
-	if [[ "${IMAGE_TAG}" =~ ^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$ ]]; then
-		LATEST=1
-	fi
+    # validate if the tag is correct SEMVER without additional info
+    if [[ "${IMAGE_TAG}" =~ ^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$ ]]; then
+        LATEST=1
+    fi
 fi
 
 # Login into the container registry:
-"${EXECUTOR}" login \
-    "${EXTRA_FLAGS[@]}" \
+"${EXECUTOR}" "${EXTRA_FLAGS[@]}" login \
     --username "${ROBOT_USERNAME}" \
     --password "${ROBOT_PASSWORD}" \
     "${REGISTRY}"
 
-# Set manifest name
-export MANIFEST_NAME="${IMAGE}":"${IMAGE_TAG}"
 
 MANIFESTS=()
 for ARCH in amd64 arm64; do
-    MANIFESTS+=("${IMAGE}":"${GIT_SHA}"-"${ARCH}")
+    MANIFESTS+=("${IMAGE}":"${IMAGE_TAG}"-"${ARCH}")
+    "${EXECUTOR}" "${EXTRA_FLAGS[@]}" push \
+            "${IMAGE}":"${IMAGE_TAG}"-"${ARCH}"
 done
 
 # Create a multi-architecture manifest
-if ! "${EXECUTOR}" manifest create --amend "${MANIFEST_NAME}" "${MANIFESTS[@]}"; then
-    echo "> creation of manifest failed"
-    exit 1
-fi
-
-for ARCH in amd64 arm64; do
-    "${EXECUTOR}" manifest add \
-        "${EXTRA_FLAGS[@]}" \
-        "${MANIFEST_NAME}" \
-        "${IMAGE}":"${GIT_SHA}"-"${ARCH}"
-done
+"${EXECUTOR}" "${EXTRA_FLAGS[@]}" manifest create \
+    --amend "${IMAGE}":${IMAGE_TAG} \
+    "${MANIFESTS[@]}"
 
 # Push the full manifest, with all CPU Architectures, with IMAGE_TAG tag
-"${EXECUTOR}" manifest push \
-    --all \
-    "${EXTRA_FLAGS[@]}" \
-    "${MANIFEST_NAME}" \
-    docker://"${IMAGE}":"${IMAGE_TAG}";
+"${EXECUTOR}" "${EXTRA_FLAGS[@]}" manifest push \
+    "${IMAGE}":${IMAGE_TAG}
 
 if [[ -n "${LATEST}" ]]; then
+    # Create a multi-architecture manifest with latest tag
+    "${EXECUTOR}" "${EXTRA_FLAGS[@]}" manifest create \
+        --amend "${IMAGE}":latest \
+        "${MANIFESTS[@]}"
+
     # Push the full manifest, with all CPU Architectures, with latest tag
-    "${EXECUTOR}" manifest push \
-        --all \
-        "${EXTRA_FLAGS[@]}" \
-        "${MANIFEST_NAME}" \
-        docker://"${IMAGE}":latest;
+    "${EXECUTOR}" "${EXTRA_FLAGS[@]}" manifest push \
+        "${IMAGE}":latest
 fi

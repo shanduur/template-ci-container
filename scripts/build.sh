@@ -27,83 +27,89 @@ echo '> starting build'
 
 # Validate if required variables are set
 if [[ -z "${EXECUTOR}" ]]; then
-	echo "> EXECUTOR not set"
-	if EXECUTOR=$(which docker) ; then
-		echo ">> using docker as EXECUTOR"
-	elif EXECUTOR=$(which podman) ; then
-		echo ">> using podman as EXECUTOR"
-	else
-		echo ">> no executor found on the system"
-		exit 1
-	fi
+    echo "> EXECUTOR not set"
+    if EXECUTOR=$(which docker) ; then
+        echo ">> using docker as EXECUTOR"
+    elif EXECUTOR=$(which podman) ; then
+        echo ">> using podman as EXECUTOR"
+    else
+        echo ">> no executor found on the system"
+        exit 1
+    fi
 fi
 
 # set debug mode if DEBUG is set
+EXTRA_FLAGS=()
 if [[ -n "${DEBUG}" ]]; then
-	set -x
-	if [[ "${EXECUTOR}" == "podman" ]]; then
-		EXTRA_FLAGS=(--log-level=debug)
-	elif [[ "${EXECUTOR}" == "docker" ]]; then
-		EXTRA_FLAGS=(--debug)
-	fi
+    set -x
+    if [[ "${EXECUTOR}" == "podman" ]]; then
+        EXTRA_FLAGS=(--log-level=debug)
+    elif [[ "${EXECUTOR}" == "docker" ]]; then
+        EXTRA_FLAGS=(--debug)
+    fi
 fi
 
 # set git sha if not set
 if [[ -z "${GIT_SHA}" ]]; then
-	GIT_SHA=$(git rev-parse HEAD)
+    GIT_SHA=$(git rev-parse HEAD)
 fi
 
 # validate if required variables are set
 if [[ -z "${REGISTRY}" ]]; then
-	echo "> REGISTRY not set"
-	echo ">> using docker.io"
-	REGISTRY='docker.io'
+    echo "> REGISTRY not set"
+    echo ">> using docker.io"
+    REGISTRY='docker.io'
 fi
 if [[ -z "${REPOSITORY}" ]]; then
-	echo "> REPOSITORY not set"
-	exit 1
+    echo "> REPOSITORY not set"
+    exit 1
 fi
 if [[ -z "${IMAGE_NAME}" ]]; then
-	echo "> IMAGE_NAME not set"
-	exit 1
+    echo "> IMAGE_NAME not set"
+    exit 1
 fi
 # combine variables to easier refer to the image
 IMAGE="${REGISTRY}"/"${REPOSITORY}"/"${IMAGE_NAME}"
 
+if [[ -z "${IMAGE_TAG}" ]]; then
+    echo "> IMAGE_TAG not set"
+    echo ">> tagging '${GIT_SHA}'"
+    IMAGE_TAG="${GIT_SHA}"
+fi
+
 if [[ -z "${CONTEXT}" ]]; then
-	echo "> CONTEXT not set"
-	echo ">> using '.'"
-	CONTEXT='.'
+    echo "> CONTEXT not set"
+    echo ">> using '.'"
+    CONTEXT='.'
 fi
 
 if [[ -z "${CONTAINERFILE}" ]]; then
-	echo "> CONTAINERFILE not set"
-	if [[ -f "${CONTEXT}"/Dockerfile ]]; then
-		echo ">> using '${CONTEXT}/Dockerfile'"
-		CONTAINERFILE="${CONTEXT}"/Dockerfile
-	elif [[ -f "${CONTEXT}"/Containerfile ]]; then
-		echo ">> using '${CONTEXT}/Containerfile'"
-		CONTAINERFILE='Containerfile'
-	else
-		echo ">> no Containerfile found in '${CONTEXT}'"
-		exit 1
-	fi
+    echo "> CONTAINERFILE not set"
+    if [[ -f "${CONTEXT}"/Dockerfile ]]; then
+        echo ">> using '${CONTEXT}/Dockerfile'"
+        CONTAINERFILE="${CONTEXT}"/Dockerfile
+    elif [[ -f "${CONTEXT}"/Containerfile ]]; then
+        echo ">> using '${CONTEXT}/Containerfile'"
+        CONTAINERFILE='Containerfile'
+    else
+        echo ">> no Containerfile found in '${CONTEXT}'"
+        exit 1
+    fi
 fi
 
 BUILD_ARGS=()
 for ARG in "${@}"; do
-	# add args to list
-	BUILD_ARGS+=("--build-arg=${ARG}")
+    # add args to list
+    BUILD_ARGS+=("--build-arg=${ARG}")
 done
 
 for ARCH in amd64 arm64; do
-	"${EXECUTOR}" build \
-		--tag="${IMAGE}":"${GIT_SHA}"-"${ARCH}" \
-		--platform="linux/${ARCH}" \
-		--file "${CONTAINERFILE}" \
-		"${BUILD_ARGS[@]}" \
-		--pull \
-		--rm \
-		"${EXTRA_FLAGS[@]}" \
-		"${CONTEXT}"
+    "${EXECUTOR}" "${EXTRA_FLAGS[@]}" build \
+        --tag="${IMAGE}":"${IMAGE_TAG}"-"${ARCH}" \
+        --platform="linux/${ARCH}" \
+        --file "${CONTAINERFILE}" \
+        "${BUILD_ARGS[@]}" \
+        --pull \
+        --rm \
+        "${CONTEXT}"
 done
