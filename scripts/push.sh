@@ -101,6 +101,12 @@ done
     --amend "${IMAGE}":${IMAGE_TAG} \
     "${MANIFESTS[@]}"
 
+for ARCH in amd64 arm64; do
+    "${EXECUTOR}" "${EXTRA_FLAGS[@]}" manifest annotate \
+        "${IMAGE}":"${IMAGE_TAG}" \
+        "${IMAGE}":"${IMAGE_TAG}"-"${ARCH}"
+done
+
 # Push the full manifest, with all CPU Architectures, with IMAGE_TAG tag
 "${EXECUTOR}" "${EXTRA_FLAGS[@]}" manifest push \
     "${IMAGE}":${IMAGE_TAG}
@@ -110,6 +116,12 @@ if [[ -n "${LATEST}" ]]; then
     "${EXECUTOR}" "${EXTRA_FLAGS[@]}" manifest create \
         --amend "${IMAGE}":latest \
         "${MANIFESTS[@]}"
+
+    for ARCH in amd64 arm64; do
+        "${EXECUTOR}" "${EXTRA_FLAGS[@]}" manifest annotate \
+            "${IMAGE}":latest \
+            "${IMAGE}":"${IMAGE_TAG}"-"${ARCH}"
+    done
 
     # Push the full manifest, with all CPU Architectures, with latest tag
     "${EXECUTOR}" "${EXTRA_FLAGS[@]}" manifest push \
