@@ -42,10 +42,3 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
-      - name: push image to registry
-        run: ./scripts/push.sh
-        on:
-          push:
-            branches: [ main ]
-          tags:
-            - v*
