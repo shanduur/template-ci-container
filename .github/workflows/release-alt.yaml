@@ -31,7 +31,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./Conatinerfile
+          file: ./Containerfile
           platforms: linux/amd64
           tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64
           outputs: type=docker,dest=/tmp/${{ env.IMAGE_TAG }}-amd64.tar
