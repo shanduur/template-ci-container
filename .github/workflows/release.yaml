@@ -1,0 +1,46 @@
+name: Build, scan and release container image
+
+on:
+  release:
+    types: [published]
+
+env:
+  REGISTRY: ghcr.io
+  REPOSITORY: shanduur
+  IMAGE_NAME: template-ci-container
+  IMAGE_TAG: ${{ github.ref_name }}
+  ROBOT_USERNAME: ${{ github.repository_owner }}
+  ROBOT_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  image_lint:
+    name: Lint Containerfile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Containerfile
+
+  build_scan_push:
+    name: Build, scan and push container image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Build an image from Containerfile
+        run: ./scripts/build.sh
+      - name: Run Trivy vulnerability scanner for AMD64
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64
+          trivy-config: .trivy.yaml
+      - name: Run Trivy vulnerability scanner for ARM64
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-arm64
+          trivy-config: .trivy.yaml
+      - name: Push image to the registry
+        run: ./scripts/push.sh
