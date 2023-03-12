@@ -34,13 +34,13 @@ jobs:
           file: ./Containerfile
           platforms: linux/amd64
           tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64
-          outputs: type=docker,dest=/tmp/${{ env.IMAGE_TAG }}-amd64.tar
+          load: true
 
       - name: Run Trivy vulnerability scanner for AMD64
         uses: aquasecurity/trivy-action@master
         with:
           trivy-config: .trivy.yaml
-          input: /tmp/${{ env.IMAGE_TAG }}-amd64.tar
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64
 
       - name: Build ARM64 image
         uses: docker/build-push-action@v4
@@ -49,13 +49,13 @@ jobs:
           file: ./Containerfile
           platforms: linux/arm64
           tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-arm64
-          outputs: type=docker,dest=/tmp/${{ env.IMAGE_TAG }}-arm64.tar
+          load: true
 
       - name: Run Trivy vulnerability scanner for ARM64
         uses: aquasecurity/trivy-action@master
         with:
           trivy-config: .trivy.yaml
-          input: /tmp/${{ env.IMAGE_TAG }}-arm64.tar
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-arm64
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
