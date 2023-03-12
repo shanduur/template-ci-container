@@ -1,4 +1,4 @@
-name: Build and scan container image
+name: Validate Shell Scripts
 
 on:
   push:
