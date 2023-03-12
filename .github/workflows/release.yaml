@@ -12,6 +12,7 @@ env:
   GIT_SHA: ${{ github.sha }}
   ROBOT_USERNAME: ${{ secrets.ROBOT_USERNAME }}
   ROBOT_PASSWORD: ${{ secrets.ROBOT_PASSWORD }}
+  DEBUG: true
 
 jobs:
   build_scan_push:
