@@ -2,13 +2,14 @@ name: Build, scan and release container image
 
 on:
   release:
-    types: [published]
+    types: [released,prereleased]
 
 env:
   REGISTRY: ghcr.io
   REPOSITORY: shanduur
   IMAGE_NAME: template-ci-container
   IMAGE_TAG: ${{ github.ref_name }}
+  GIT_SHA: ${{ github.sha }}
   ROBOT_USERNAME: ${{ github.repository_owner }}
   ROBOT_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
@@ -35,12 +36,12 @@ jobs:
       - name: Run Trivy vulnerability scanner for AMD64
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.GIT_SHA }}-amd64
           trivy-config: .trivy.yaml
       - name: Run Trivy vulnerability scanner for ARM64
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-arm64
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.GIT_SHA }}-arm64
           trivy-config: .trivy.yaml
       - name: Push image to the registry
         run: ./scripts/push.sh
