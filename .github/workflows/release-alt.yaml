@@ -33,6 +33,7 @@ jobs:
           context: .
           file: ./Containerfile
           platforms: linux/amd64
+          provenance: false
           tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64
           load: true
 
@@ -48,6 +49,7 @@ jobs:
           context: .
           file: ./Containerfile
           platforms: linux/arm64
+          provenance: false
           tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-arm64
           load: true
 
@@ -70,5 +72,6 @@ jobs:
           context: .
           file: ./Containerfile
           platforms: linux/amd64,linux/arm64
+          provenance: false
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-alt
